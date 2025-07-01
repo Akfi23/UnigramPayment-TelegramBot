@@ -37,6 +37,10 @@ app.get('/set-webhook', async (req, res) => {
     }
 });
 
+app.get('/', (req, res) => {
+    res.send('Telegram Bot Webhook Server is Running');
+});
+
 // === API Роуты (пример) ===
 app.get('/api/test', (req, res) => {
     res.json({ status: 'API работает' });

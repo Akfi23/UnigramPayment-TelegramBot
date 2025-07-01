@@ -22,19 +22,21 @@ server.post(`/bot`, (req, res) => {
 server.use(express.static(path.join(__dirname, 'TelegramBot-UnigramPayment')));
 server.use(express.json());
 
-// Установка webhook
-const webhookUrl = `${process.env.WEBHOOK_URL}/bot`;
-bot.setWebHook(webhookUrl).then(() => {
-    logger.message(`Webhook установлен: ${webhookUrl}`);
-});
-
-// Запуск сервера
-server.listen(port, () => {
-    logger.message(`Unigram Payment Bot Template started at port: ${port}`);
+// === Новый маршрут: /set-webhook (для ручной установки webhook) ===
+server.get('/set-webhook', async (req, res) => {
+    const webhookUrl = `${process.env.WEBHOOK_URL}/bot`;
+    try {
+        await bot.setWebHook(webhookUrl);
+        logger.message(`✅ Webhook установлен вручную: ${webhookUrl}`);
+        res.send(`✅ Webhook установлен: ${webhookUrl}`);
+    } catch (err) {
+        logger.error(`❌ Ошибка установки webhook: ${err.message}`);
+        res.status(500).send(`❌ Не удалось установить webhook: ${err.message}`);
+    }
 });
 
 // Обработчики событий
-bot.onText('/start', (message) => {
+bot.onText(/^\/start$/, (message) => {
     startAttachController.sendStartMessage(bot, message);
 });
 
@@ -48,4 +50,19 @@ bot.on('pre_checkout_query', async (query) => {
 
 bot.on('polling_error', (error) => {
     logger.error(`Polling error: ${error.message}`);
+});
+
+// Запуск сервера
+server.listen(port, async () => {
+    logger.message(`Unigram Payment Bot Template started at port: ${port}`);
+
+    const webhookUrl = `${process.env.WEBHOOK_URL}/bot`;
+
+    try {
+        await bot.setWebHook(webhookUrl);
+        logger.message(`✅ Webhook установлен автоматически: ${webhookUrl}`);
+    } catch (err) {
+        logger.error(`❌ Не удалось автоматически установить webhook: ${err.message}`);
+        logger.message(`👉 Откройте https://ваш-url/set-webhook для установки вручную`);
+    }
 });
